@@ -46,35 +46,37 @@ size acc x = if null (tail x) then acc else size (acc+1) (tail x)
 getSize :: [Char] -> Integer
 getSize = size 1
 
-sizeNoLeadFull :: [Char] -> Integer -> Integer -> Integer
-sizeNoLeadFull n acc1 acc2
-    | null n = acc2
-    | head n == '0' = sizeNoLeadFull (tail n) (acc1+1) acc2
-    | otherwise = sizeNoLeadFull (tail n) 0 acc1+acc2+1
+getNoLeadFull :: [Char] -> [Char] -> [Char] -> [Char]
+getNoLeadFull n acc1 acc2
+    | null n = reverse acc2
+    | head n == '0' = getNoLeadFull (tail n) (head n:acc1) acc2
+    | otherwise = getNoLeadFull (tail n) "" (head n:(acc1++acc2))
 
-sizeNoLead :: [Char] -> Integer
-sizeNoLead n = sizeNoLeadFull n 0 1
+getNoLead :: [Char] -> [Char]
+getNoLead n = getNoLeadFull n "" ""
 
 getPrecision :: [Char] -> Integer
 getPrecision n 
-    | null (tail (splitOn "." n)) || null (head (tail (splitOn "." n))) = 0
-    | otherwise = sizeNoLead (head (tail (splitOn "." n)))
+    | null (tail (splitOn "." n)) || null (getNoLead (head (tail (splitOn "." n)))) = 0
+    | otherwise = getSize (getNoLead (head (tail (splitOn "." n))))
 
 myDiv :: Integer -> Integer -> Double
 myDiv a b =  (fromIntegral a :: Double)/(fromIntegral b :: Double)
 
 toValue :: [Char] -> Integer -> Integer
 toValue n precision
-    | null (tail (splitOn "." n)) || null (head (tail (splitOn "." n))) = (10^precision)*(read (head (splitOn "." n)) :: Integer)
+    | head n == '-' = 
+        -(toValue (tail n) precision)
+    | null (tail (splitOn "." n)) || null (getNoLead (head (tail (splitOn "." n)))) = (10^precision)*(read (head (splitOn "." n)) :: Integer)
     | otherwise = 
-        (10^precision)*(read (head (splitOn "." n)) :: Integer) + (read (head (tail (splitOn "." n))) :: Integer)
+        (10^precision)*(read (head (splitOn "." n)) :: Integer) + (read (getNoLead(head (tail (splitOn "." n)))) :: Integer)
 
 isDouble :: [Char] -> Bool
 isDouble st = not (null (tail st)) && (head st == '.' || isDouble (tail st))
 
 printSeqInt :: [Char] -> [Char] -> Bool -> Integer -> Integer -> Integer -> Integer -> IO ()
 printSeqInt f s w l inc r sz
-    | l > r = printf ""
+    | r-(l+inc) > r-l ||  l > r = printf ""
     | w && f/="" = do
         printf "seq: o texto de formatação não pode ser especificado quando escrevendo textos de larguras iguais\n"
         printf "Tente \"seq --help\" para mais informações.\n"
@@ -99,7 +101,7 @@ printSeqInt f s w l inc r sz
 
 printSeqFakeDouble :: [Char] -> [Char] -> Bool -> Integer -> Integer -> Integer -> Integer -> Integer -> IO ()
 printSeqFakeDouble f s w l inc r sz precision
-    | l > r = printf ""
+    | r-(l+inc) > r-l || l > r = printf ""
     | w && f/="" = do
         printf "seq: o texto de formatação não pode ser especificado quando escrevendo textos de larguras iguais\n"
         printf "Tente \"seq --help\" para mais informações.\n"
@@ -126,9 +128,9 @@ printSeqHandler :: [Char] -> [Char] -> Bool -> [Char] -> [Char] -> [Char] -> IO 
 printSeqHandler f s w l inc r
     | isDouble l || isDouble inc || isDouble r = 
         printSeqFakeDouble f s w 
-            (toValue l (maximum [getPrecision l, getPrecision inc, getPrecision r])) 
+            (toValue l   (maximum [getPrecision l, getPrecision inc, getPrecision r])) 
             (toValue inc (maximum [getPrecision l, getPrecision inc, getPrecision r])) 
-            (toValue r (maximum [getPrecision l, getPrecision inc, getPrecision r])) 
+            (toValue r   (maximum [getPrecision l, getPrecision inc, getPrecision r])) 
             (getSize (head (splitOn "." r)) + maximum [getPrecision l, getPrecision inc, getPrecision r] + 1) 
             (maximum [getPrecision l, getPrecision inc, getPrecision r])
     | otherwise = 
