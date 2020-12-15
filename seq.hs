@@ -1,6 +1,5 @@
 import System.Environment ( getArgs )   
 import Text.Printf ( printf )
-import Data.List.Split.Internals ( splitOn )
 
 help :: IO ()
 help = do
@@ -40,6 +39,15 @@ version = do
     printf "NÃO HÁ QUALQUER GARANTIA, na máxima extensão permitida em lei.\n\n"
     printf "Escrito por Ulrich Drepper.\n"
 
+splitOnFull :: [Char] -> Char -> [Char] -> [[Char]] -> [[Char]]
+splitOnFull st c mem acc 
+    | null st = reverse (reverse mem:acc)
+    | head st == c = splitOnFull (tail st) c "" (reverse mem:acc)
+    | otherwise = splitOnFull (tail st) c (head st:mem) acc
+
+splitOn :: Char -> [Char] -> [[Char]]
+splitOn c st = splitOnFull st c "" []
+
 size :: Integer -> [Char] -> Integer
 size acc x = if null (tail x) then acc else size (acc+1) (tail x) 
 
@@ -57,8 +65,8 @@ getNoLead n = getNoLeadFull n "" ""
 
 getPrecision :: [Char] -> Integer
 getPrecision n 
-    | null (tail (splitOn "." n)) || null (getNoLead (head (tail (splitOn "." n)))) = 0
-    | otherwise = getSize (getNoLead (head (tail (splitOn "." n))))
+    | null (tail (splitOn '.' n)) || null (getNoLead (head (tail (splitOn '.' n)))) = 0
+    | otherwise = getSize (getNoLead (head (tail (splitOn '.' n))))
 
 myDiv :: Integer -> Integer -> Double
 myDiv a b =  (fromIntegral a :: Double)/(fromIntegral b :: Double)
@@ -67,9 +75,9 @@ toValue :: [Char] -> Integer -> Integer
 toValue n precision
     | head n == '-' = 
         -(toValue (tail n) precision)
-    | null (tail (splitOn "." n)) || null (getNoLead (head (tail (splitOn "." n)))) = (10^precision)*(read (head (splitOn "." n)) :: Integer)
+    | null (tail (splitOn '.' n)) || null (getNoLead (head (tail (splitOn '.' n)))) = (10^precision)*(read (head (splitOn '.' n)) :: Integer)
     | otherwise = 
-        (10^precision)*(read (head (splitOn "." n)) :: Integer) + (read (getNoLead(head (tail (splitOn "." n)))) :: Integer)
+        (10^precision)*(read (head (splitOn '.' n)) :: Integer) + (read (getNoLead(head (tail (splitOn '.' n)))) :: Integer)
 
 isDouble :: [Char] -> Bool
 isDouble st = not (null (tail st)) && (head st == '.' || isDouble (tail st))
@@ -131,10 +139,10 @@ printSeqHandler f s w l inc r
             (toValue l   (maximum [getPrecision l, getPrecision inc, getPrecision r])) 
             (toValue inc (maximum [getPrecision l, getPrecision inc, getPrecision r])) 
             (toValue r   (maximum [getPrecision l, getPrecision inc, getPrecision r])) 
-            (getSize (head (splitOn "." r)) + maximum [getPrecision l, getPrecision inc, getPrecision r] + 1) 
+            (getSize (head (splitOn '.' r)) + maximum [getPrecision l, getPrecision inc, getPrecision r] + 1) 
             (maximum [getPrecision l, getPrecision inc, getPrecision r])
     | otherwise = 
-        printSeqInt f s w (toValue l 0) (toValue inc 0) (toValue r 0) (getSize (head (splitOn "." r)))
+        printSeqInt f s w (toValue l 0) (toValue inc 0) (toValue r 0) (getSize (head (splitOn '.' r)))
 
 
 printSeq :: [[Char]] -> [Char] -> [Char] -> Bool -> IO ()
